@@ -222,11 +222,30 @@ public static partial class CrawlWindow
             case "BtnLedger": Show(s_view == View.Ledger ? View.Table : View.Ledger); return;
         }
         if (e.Action != "select" || e.Widget != "Answers") return;
+        PickRow((int)MathF.Round(e.Value), "answers.picked");
+    }
+
+    static bool PickRow(int row, string counter)
+    {
         Window.Host?.ClearSelection(Id, "Answers");   // a picked row is done: nothing stays marked (the list would grey it)
-        int row = (int)MathF.Round(e.Value);
-        if (row < 0 || row >= s_rows.Count) return;
-        Counters.Add("answers.picked");
+        if (row < 0 || row >= s_rows.Count) return false;
+        Counters.Add(counter);
         s_rows[row]();
+        return true;
+    }
+
+    /// <summary>Number keys 1-9 (top row or numpad) pick a row of the answers list while a table is open, matching Kenshi's own dialogue panel.</summary>
+    public static bool HandleKey(Meitou.Game.Host.Input.Key key)
+    {
+        if (!Window.IsOpen || PzaUi.Typing || s_view != View.Table) return false;
+        int index = key is >= Meitou.Game.Host.Input.Key.D1 and <= Meitou.Game.Host.Input.Key.D9
+            ? key - Meitou.Game.Host.Input.Key.D1
+            : key is >= Meitou.Game.Host.Input.Key.Keypad1 and <= Meitou.Game.Host.Input.Key.Keypad9
+            ? key - Meitou.Game.Host.Input.Key.Keypad1
+            : -1;
+        if (index < 0) return false;
+        PickRow(index, "answers.key");
+        return true;
     }
 
     /// <summary>Turns to a page (the rules, the ledger) or back to the table. Asking for the rules, the dealer says his own line about them.</summary>

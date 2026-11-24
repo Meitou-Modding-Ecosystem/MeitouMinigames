@@ -58,4 +58,28 @@ public static class DealerTalk
             return true;
         }
     }
+
+    /// <summary>Patches DialogueWindow.DialogueKey so number keys 1-9 pick answers at every bar-game table and eat the key (no squad switch).</summary>
+    public static string ApplyKeys(Harmony h)
+    {
+        var dw = AccessTools.TypeByName("Meitou.Game.Ui.DialogueWindow");
+        var method = dw is null ? null : AccessTools.Method(dw, "DialogueKey", [typeof(Meitou.Game.Host.Input.Key)]);
+        if (method is null)
+            return "table keys: OFF (DialogueWindow.DialogueKey not found): pick answers with the mouse or pad";
+        h.Patch(method, postfix: new HarmonyMethod(AccessTools.Method(typeof(DealerTalk), nameof(DialogueKeyPostfix))));
+        return "table keys: patched DialogueWindow.DialogueKey postfix (1-9 pick answers at the table)";
+    }
+
+    static void DialogueKeyPostfix(Meitou.Game.Host.Input.Key __0, ref bool __result)
+    {
+        if (__result) return;
+        try
+        {
+            if (CrawlWindow.HandleKey(__0)) __result = true;
+        }
+        catch (Exception e)
+        {
+            Log.Few("keys.throw", $"table keys: {e.GetType().Name}: {e.Message}");
+        }
+    }
 }
