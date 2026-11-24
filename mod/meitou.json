@@ -1,0 +1,10 @@
+{
+  // PZA's Cat Crawlers for Meitou (author PZA, GPLv3 or later): the Swamper Casino Dealers' own game as a real card table.
+  // Needs Meitou 0.21.0 or newer (the right-click row on the dealer).
+  "id": "pza.catcrawlers",
+  "version": "0.3.0",
+  "apiVersion": 2,
+  "assemblies": ["PZACatCrawlers.Meitou.dll"],
+  "entry": "PZA.CatCrawlers.CatCrawlersMod",
+  "gameVersion": ">=0.21.0"
+}

@@ -1,0 +1,210 @@
+# PZA's Cat Crawlers for Meitou: known bugs the fuzz harness must catch (PZAMeitouUi\fuzz\mutate.py). Author: PZA. One block per mutant, verbatim.
+# Header: ID | file from the folder that holds the repos | fuzz targets to run | what it plants
+
+@@ CC-tie-wins | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | the same crawler again wins a Fish (the house's cut gone)
+<<<
+        bool win = call == Call.Fish ? card > Face : card < Face;
+===
+        bool win = call == Call.Fish ? card >= Face : card < Face;
+>>>
+
+@@ CC-pays-seven | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | a lick pays stake x 7 / winning ranks
+<<<
+        return k <= 0 || pot <= 0 ? 0 : pot * (Crawl.Ranks - 1) / k;
+===
+        return k <= 0 || pot <= 0 ? 0 : pot * Crawl.Ranks / k;
+>>>
+
+@@ CC-open-on-plank | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | the dealer opens on a Plank (a call that cannot be made)
+<<<
+            if (face is Crawler.WolfTail or Crawler.Plank) { burned++; continue; }
+===
+            if (face is Crawler.WolfTail) { burned++; continue; }
+>>>
+
+@@ CC-stake-over-purse | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | a stake larger than the purse is dealt (money below 0)
+<<<
+        if (!CanDeal || stake <= 0 || stake > purse || !Stakes
+===
+        if (!CanDeal || stake <= 0 || !Stakes
+>>>
+
+@@ CC-no-house-limit | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | the pot rides past the house limit
+<<<
+    public bool CanRide => Phase == Phase.Licked && Drawn is > Crawler.WolfTail and < Crawler.Plank && Pot < HouseLimit;
+===
+    public bool CanRide => Phase == Phase.Licked && Drawn is > Crawler.WolfTail and < Crawler.Plank;
+>>>
+
+@@ CC-card-not-taken | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | a drawn card stays in the crawl (a fifth copy can turn up)
+<<<
+            if (n < _left[i]) { _left[i]--; Total--; return (Crawler)i; }
+===
+            if (n < _left[i]) { Total--; return (Crawler)i; }
+>>>
+
+@@ CC-fresh-with-face | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | a fresh crawl in mid hand holds the face card too
+<<<
+        if (Crawl.Total == 0) { Crawl.Fresh(Face); fresh = true; }
+===
+        if (Crawl.Total == 0) { Crawl.Fresh(); fresh = true; }
+>>>
+
+@@ CC-take-keeps-pot | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.table | Take pays the pot and leaves it on the table
+<<<
+        long cats = Pot;
+        Pot = 0;
+===
+        long cats = Pot;
+>>>
+
+@@ CC-load-idle-pot | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.save | a save with a pot and no hand loads
+<<<
+                Phase.Idle => a[5] == 0,
+===
+                Phase.Idle => true,
+>>>
+
+@@ CC-load-end-face | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.save | a save whose face card is a Wolf Tail or a Plank loads
+<<<
+                Phase.Choose => middle && a[5] > 0 && a[5] <= top && a[4] > 0,
+===
+                Phase.Choose => a[5] > 0 && a[5] <= top && a[4] > 0,
+>>>
+
+@@ CC-purse-applied | PZAMeitouCatCrawlers\mod\src\CrawlCore.cs | core.purse | an applied change is counted twice in the purse shown
+<<<
+        _pending.RemoveAll(p => p.Seq <= applied);
+===
+        _pending.RemoveAll(p => p.Seq < applied);
+>>>
+
+@@ CC-token-left | PZAMeitouCatCrawlers\mod\src\Calls.cs | calls.lines | /OUTLANDER/ is left in the dealer's line
+<<<
+        "OUTLANDER" => Strings.T("outlander"),
+===
+        "OUTLANDER" => m.Value,
+>>>
+
+@@ CC-lick-says-200 | PZAMeitouCatCrawlers\mod\src\Calls.cs | calls.lines | a lick line keeps the vanilla 200 instead of the pot
+<<<
+        if (cats > 0)
+        {
+===
+        if (cats > 1_000_000)
+        {
+>>>
+
+@@ CC-parse-no-cap | PZAMeitouCatCrawlers\mod\src\CrawlSystem.cs | save.parse | a save's list length is not capped
+<<<
+                if (n < 0 || n > max) throw new InvalidDataException();
+===
+                if (n < 0) throw new InvalidDataException();
+>>>
+
+@@ CC-raid-kind-lost | PZAMeitouCatCrawlers\mod\src\RaidCore.cs | raid.play | a trouble kind gets no copies (the rename slip of 2026-11-21)
+<<<
+        Dust.HolyPaladins or Dust.ShekPatrol or Dust.BlackDragon or Dust.BeakThing => 3,
+===
+        Dust.HolyPaladins or Dust.BlackDragon or Dust.BeakThing => 3,
+>>>
+
+@@ CC-raid-run-all | PZAMeitouCatCrawlers\mod\src\RaidCore.cs | raid.play | a runner takes the whole haul while the other is still out
+<<<
+            long take = dealerIn ? HaulUnits / 2 : HaulUnits;
+===
+            long take = HaulUnits;
+>>>
+
+@@ CC-raid-no-bust | PZAMeitouCatCrawlers\mod\src\RaidCore.cs | raid.play | a second trouble of a kind does not bust
+<<<
+        if (TroubleLine.Contains(card))
+===
+        if (TroubleLine.Contains(card) && false)
+>>>
+
+@@ CC-raid-king-cheap | PZAMeitouCatCrawlers\mod\src\RaidCore.cs | raid.play | the Dust King takes the cheapest card, not the best
+<<<
+            var best = Haul.OrderByDescending(RaidCards.Value).First();
+===
+            var best = Haul.OrderBy(RaidCards.Value).First();
+>>>
+
+@@ CC-dispose-unseats | PZAMeitouCatCrawlers\mod\src\WorldSlot.cs | world.slot | the old world's late Dispose (after a load) clears the new live world (the order of WorldSession: Ready before the old Dispose)
+<<<
+            if (!ReferenceEquals(_current, owner)) return false;
+===
+>>>
+
+@@ CC-ready-keeps-queue | PZAMeitouCatCrawlers\mod\src\WorldSlot.cs | world.slot | a seat asked for in the last world is taken in the new one
+<<<
+            int dropped = _queue.Count;
+            _queue.Clear();
+            return dropped;
+===
+            return 0;
+>>>
+
+@@ CC-stale-takes | PZAMeitouCatCrawlers\mod\src\WorldSlot.cs | world.slot | any world, live or not, takes the queued seats
+<<<
+            if (ReferenceEquals(_current, owner) && _queue.Count > 0) { item = _queue.Dequeue(); return true; }
+===
+            if (_queue.Count > 0) { item = _queue.Dequeue(); return true; }
+>>>
+
+@@ CC-wrestle-no-tapcap | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.bout | the 8 pushes a second cap is gone (an autoclicker wins)
+<<<
+        if (_taps.Count >= WrestleTuning.TapCap) return false;
+===
+        if (_taps.Count >= 1000) return false;
+>>>
+
+@@ CC-wrestle-no-clamp | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.bout | a pin leaves the balance past the end of the meter
+<<<
+        Balance = Math.Clamp(Balance, -1f, 1f);
+        End = e;
+===
+        End = e;
+>>>
+
+@@ CC-wrestle-forfeit-refunds | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.bout | leaving mid-bout gives the stake back
+<<<
+        if (Phase == WrestlePhase.Bout) return Finish(WrestleEnd.Forfeit);
+===
+        if (Phase == WrestlePhase.Bout) return Finish(WrestleEnd.Refunded);
+>>>
+
+@@ CC-wrestle-short-xp | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.rewards | a bout lost in 2 s still trains
+<<<
+        if (end is not (WrestleEnd.Won or WrestleEnd.Lost) || !float.IsFinite(seconds) || seconds < HonestSeconds) return (0, 0);
+===
+        if (end is not (WrestleEnd.Won or WrestleEnd.Lost) || !float.IsFinite(seconds)) return (0, 0);
+>>>
+
+@@ CC-wrestle-sprain-floor | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.rewards | the sprain ignores the arm's health floor
+<<<
+        return room <= 0 ? 0 : Math.Min(want, room);
+===
+        return want;
+>>>
+
+@@ CC-wrestle-respect-uncapped | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.rewards | respect past the cap of 15
+<<<
+        return Math.Clamp(WrestleTiers.FirstWinRespect(tier), 0, Math.Max(0, room));
+===
+        return WrestleTiers.FirstWinRespect(tier);
+>>>
+
+@@ CC-wrestle-day-half-forever | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.rewards | the daily cap never reaches zero
+<<<
+    public static float DayShare(int boutsBeforeToday) => boutsBeforeToday < FullBoutsPerDay ? 1f : boutsBeforeToday < HalfBoutsPerDay ? 0.5f : 0f;
+===
+    public static float DayShare(int boutsBeforeToday) => boutsBeforeToday < FullBoutsPerDay ? 1f : 0.5f;
+>>>
+
+@@ CC-wrestle-load-short | PZAMeitouCatCrawlers\mod\src\WrestleCore.cs | wrestle.save | a save with a character cut short loads
+<<<
+            if (n < 0 || n > MaxCharacters || a.Count != at + 3 * n) throw new InvalidDataException();
+===
+            if (n < 0 || n > MaxCharacters || a.Count < at + 3 * (n - 1)) throw new InvalidDataException();
+>>>
