@@ -53,8 +53,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  release-readiness:
-    name: Release readiness
+  development-readiness:
+    name: Development readiness
     if: always()
     needs: [validate]
     runs-on: ubuntu-latest
