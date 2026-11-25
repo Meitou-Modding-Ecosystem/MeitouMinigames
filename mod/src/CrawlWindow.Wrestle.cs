@@ -29,8 +29,12 @@ public static partial class CrawlWindow
 
     public static WrestleBout Bout => s_bout;
 
-    /// <summary>The arm pictures for the player: a Shek's own arm, else the human one (slice 1 has these two sets).</summary>
-    static string ArmSet(Published pub) => pub.PlayerRace.Contains("Shek", StringComparison.OrdinalIgnoreCase) ? "ss" : "hs";
+    /// <summary>The arm pictures for the player's race (Shek, Hiver, Skeleton, or Human) against the Shek challenger.</summary>
+    static string ArmSet(Published pub) =>
+        pub.PlayerRace.Contains("Shek", StringComparison.OrdinalIgnoreCase) ? "ss"
+        : pub.PlayerRace.Contains("Hive", StringComparison.OrdinalIgnoreCase) ? "vs"
+        : pub.PlayerRace.Contains("Skeleton", StringComparison.OrdinalIgnoreCase) ? "ks"
+        : "hs";
 
     static readonly string[] s_wrestleButtons = ["BtnSeq0", "BtnSeq1", "BtnSeq2", "BtnPush", "BtnBrace", "BtnHold", "BtnLeft"];
 
