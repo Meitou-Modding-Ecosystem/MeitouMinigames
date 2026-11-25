@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build and fuzz (Meitou ${{ matrix.meitou }})
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        meitou: ['0.21.0', '0.22.1']
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: MeitouMinigames
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: Meitou-Modding-Ecosystem/PZAMeitouUi
+          ref: bfe03701a0e3cc386b07928669f2a15d4b48d98e
+          path: PZAMeitouUi
+          persist-credentials: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 11.0.x
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Build, validate staging and run fuzz suite
+        shell: pwsh
+        run: ./MeitouMinigames/Tools/CI.ps1 -MeitouVersion '${{ matrix.meitou }}' -Scratch (Join-Path $env:RUNNER_TEMP 'minigames-ci') -Mutation:('${{ matrix.meitou }}' -eq '0.22.1')
+      - name: Preserve fuzz and mutation reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fuzz-meitou-${{ matrix.meitou }}
+          path: |
+            MeitouMinigames/tests/out/fuzz/*.json
+            MeitouMinigames/tests/out/fuzz/*.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+  development-readiness:
+    name: Development readiness
+    if: always()
+    needs: [validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all build and fuzz jobs
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}
+        run: |
+          python - <<'PY'
+          import os
+          results = os.environ['RESULTS'].split(',')
+          if not results or any(result != 'success' for result in results):
+              raise SystemExit('A required check failed, was cancelled, or was skipped')
+          PY

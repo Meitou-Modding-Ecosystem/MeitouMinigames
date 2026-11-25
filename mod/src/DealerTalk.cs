@@ -42,20 +42,86 @@ public static class DealerTalk
     {
         try
         {
-            if (s_choices!.GetValue(__1) is not List<(DialogueNode? Reply, string Text)> choices || (uint)__2 >= (uint)choices.Count) return true;
-            if (!IsYes(choices[__2].Reply?.StringId)) return true;
+            // Meitou 0.21-0.22.1 used List<(DialogueNode?, string)>; 0.23.0 widened it to a 3-tuple (DialogueNode?, string, string?):
+            // read via IList + ITuple so one build intercepts the dealer's "yes" on every Meitou version.
+            if (s_choices!.GetValue(__1) is not System.Collections.IList choices || (uint)__2 >= (uint)choices.Count) return true;
+            if (choices[__2] is not System.Runtime.CompilerServices.ITuple item || item.Length < 2) return true;
+            var reply = item[0] as DialogueNode;
+            if (!IsYes(reply?.StringId)) return true;
+            string text = item[1] as string ?? "";
             var dealer = (CharacterId)s_npc!.GetValue(__1)!;
             var player = (CharacterId)s_player!.GetValue(__1)!;
             s_ended!.SetValue(__1, true);   // the conversation ends here; the reply's effects (the vanilla 100 cats) never run
             CrawlSystem.SeatFromTalk(dealer, player);
             Counters.Add("talk.yes_to_table");
-            Log.Few("talk.yes", $"dealer talk: \"{choices[__2].Text}\" -> the table (dealer slot {dealer.Slot}, player slot {player.Slot})", 5);
+            Log.Few("talk.yes", $"dealer talk: \"{text}\" -> the table (dealer slot {dealer.Slot}, player slot {player.Slot})", 5);
             return false;
         }
         catch (Exception e)
         {
             Log.Few("talk.throw", $"dealer talk: {e.GetType().Name}: {e.Message} (the conversation goes on as vanilla)");
             return true;
+        }
+    }
+
+    /// <summary>Patches DialogueWindow.DialogueKey (1-9 shortcuts) and MyGuiScreenHost.ListKey / ActivateFocused (arrow &amp; D-pad highlight + A/Enter confirm).</summary>
+    public static string ApplyKeys(Harmony h)
+    {
+        var parts = new List<string>();
+        var dw = AccessTools.TypeByName("Meitou.Game.Ui.DialogueWindow");
+        var method = dw is null ? null : AccessTools.Method(dw, "DialogueKey", [typeof(Meitou.Game.Host.Input.Key)]);
+        if (method is not null)
+        {
+            h.Patch(method, postfix: new HarmonyMethod(AccessTools.Method(typeof(DealerTalk), nameof(DialogueKeyPostfix))));
+            parts.Add("1-9 keys");
+        }
+        var host = AccessTools.TypeByName("Meitou.Game.Ui.MyGuiScreenHost");
+        var listKeyEnum = AccessTools.TypeByName("Meitou.Game.Ui.UiListKey");
+        var listKey = host is null || listKeyEnum is null ? null : AccessTools.Method(host, "ListKey", [listKeyEnum]);
+        if (listKey is not null)
+        {
+            h.Patch(listKey,
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(DealerTalk), nameof(ListKeyPrefix))),
+                finalizer: new HarmonyMethod(AccessTools.Method(typeof(DealerTalk), nameof(ListKeyFinalizer))));
+            parts.Add("D-pad/arrow highlight");
+        }
+        var activate = host is null ? null : AccessTools.Method(host, "ActivateFocused", []);
+        if (activate is not null)
+        {
+            h.Patch(activate, postfix: new HarmonyMethod(AccessTools.Method(typeof(DealerTalk), nameof(ActivateFocusedPostfix))));
+            parts.Add("A confirm");
+        }
+        return parts.Count > 0
+            ? "table keys: patched (" + string.Join(", ", parts) + ")"
+            : "table keys: OFF (DialogueWindow.DialogueKey / MyGuiScreenHost.ListKey not found): pick answers with the mouse";
+    }
+
+    static void ListKeyPrefix() => CrawlWindow.InListKey = true;
+    static void ListKeyFinalizer() => CrawlWindow.InListKey = false;
+
+    static void ActivateFocusedPostfix(ref bool __result)
+    {
+        if (__result) return;
+        try
+        {
+            if (CrawlWindow.AcceptHighlighted()) __result = true;
+        }
+        catch (Exception e)
+        {
+            Log.Few("keys.pad_throw", $"table keys (pad A): {e.GetType().Name}: {e.Message}");
+        }
+    }
+
+    static void DialogueKeyPostfix(Meitou.Game.Host.Input.Key __0, ref bool __result)
+    {
+        if (__result) return;
+        try
+        {
+            if (CrawlWindow.HandleKey(__0)) __result = true;
+        }
+        catch (Exception e)
+        {
+            Log.Few("keys.throw", $"table keys: {e.GetType().Name}: {e.Message}");
         }
     }
 }

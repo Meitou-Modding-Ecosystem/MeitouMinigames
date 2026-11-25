@@ -7,6 +7,8 @@ Three playable Kenshi bar games for [MeitouClient](https://github.com/Meitou-Mod
 ## Games Included
 
 ### 1. Cat Crawlers (Shark & Mud Town)
+![Cat Crawlers gameplay](media/cat-crawlers.gif)
+
 Talk to any **Swamper Casino Dealer** and say yes (`"Sure, why not."`), or hold right-click on him and choose **Play Cat Crawlers** (F10 > Mods also offers a seat at the nearest dealer).
 - 28-card crawl (7 crawlers, 4 copies each) with a live card-counting ladder.
 - Call **Fish!** (higher) or **Roll back!** (lower); payouts scale with the odds.
@@ -14,13 +16,17 @@ Talk to any **Swamper Casino Dealer** and say yes (`"Sure, why not."`), or hold 
 - Dealer lines are read at run time from your own game files in your game's language — no Kenshi dialogue text is shipped.
 
 ### 2. Looter's Rights (The Hub)
+![Looter's Rights gameplay](media/looters-rights.gif)
+
 Find the **Shady Dealer** at the Hub's bar and say **"Deal me in."**
 - Press-your-luck Dust Bandit card game: ante up, draw loot onto the haul, and watch the trouble line.
 - Two matching trouble cards bust everyone still out; run home early for half the haul, or be the last one out to take the rest.
 - The Dust King takes the best card off the haul.
 
 ### 3. Shek Arm Wrestling (Squin)
-Find the **Shek Table Challenger** at Squin's bar and say **"Lock arms."**
+![Shek Arm Wrestling gameplay](media/arm-wrestling.gif)
+
+Find the **Shek Challenger** at Squin's bar and say **"Lock arms."**
 - Real-time grip contest scaled by your character's Strength and Toughness.
 - **PUSH**, **BRACE** against telegraphed surges, hit directional Grit Surge sequences, or toggle **HOLD PUSH** for steady pushing without mashing.
 - Awards Strength/Toughness XP and Shek Kingdom respect on first wins per tier.
@@ -38,6 +44,10 @@ Requires the .NET SDK, an unpacked MeitouClient release (`>=0.21.0`), and [PZAMe
 .\mod\build.ps1 -MeitouDir <path-to-meitou>        # builds and stages mod\out\PZACatCrawlers\
 .\mod\build.ps1 -Fuzz -MeitouDir <path-to-meitou>  # builds and runs the fuzz harness (tests\fuzz)
 ```
+
+## Automated checks
+
+GitHub Actions builds and stages the mod and runs its existing full fuzz suite separately on official Meitou 0.21.0 and 0.22.1 Windows releases. The 0.22.1 job also runs the existing mutation gate. Reader ZIP hashes and the shared UI/fuzz-kit commit are pinned. The required `Development readiness` check succeeds only when both jobs pass; it publishes nothing and needs no Kenshi installation or secrets. Run the same checks locally with `pwsh Tools/CI.ps1 -MeitouVersion 0.22.1 -MeitouDir <extracted-release> -Scratch <scratch-directory> -Mutation`, with the shared UI checkout beside this repo. These automated checks do not replace interactive gameplay testing.
 
 ## Licence
 

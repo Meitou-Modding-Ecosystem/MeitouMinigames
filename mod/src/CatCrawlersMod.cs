@@ -52,6 +52,8 @@ public sealed class CatCrawlersMod : IMod
         });
         try { Log.Line(DealerTalk.Apply(context.Harmony)); }
         catch (Exception e) { Log.Line($"dealer talk: OFF (patching failed: {e.GetType().Name}: {e.Message})"); }
+        try { Log.Line(DealerTalk.ApplyKeys(context.Harmony)); }
+        catch (Exception e) { Log.Line($"table keys: OFF (patching failed: {e.GetType().Name}: {e.Message})"); }
         PzaUi.Log = s => Log.Line(s);
         PzaUi.EachFrame = CrawlWindow.EachFrame;
         CrawlWindow.Setup(context);

@@ -52,6 +52,10 @@ public static partial class CrawlWindow
     static View s_view;
     /// <summary>What each row of the answers list does now (filled by Bind, read by the list's select event).</summary>
     static readonly List<Action> s_rows = [];
+    /// <summary>True while MyGuiScreenHost.ListKey is running (keyboard arrows / controller D-pad): select highlights a row instead of firing it.</summary>
+    public static bool InListKey;
+    /// <summary>Row currently highlighted by keyboard arrows or controller D-pad (-1 = none).</summary>
+    static int s_highlighted = -1;
 
     static string F(double v) => v.ToString("0.#####", System.Globalization.CultureInfo.InvariantCulture);
     static string Box(string type, string skin, string name, double x, double y, double w, double h, string inner = "") =>
@@ -193,6 +197,7 @@ public static partial class CrawlWindow
                 : s_table.Phase == Phase.Choose ? s_calls.Face(s_table.Face) : s_calls.Invite();
             Send(new Say(s_dealer, s_call) { Tick = Now });
             s_view = View.Table;
+            s_highlighted = -1;
             Window.Open();
             Counters.Add("window.sat_down");
         }
@@ -221,18 +226,60 @@ public static partial class CrawlWindow
             case "BtnRules": Show(s_view == View.Rules ? View.Table : View.Rules); return;
             case "BtnLedger": Show(s_view == View.Ledger ? View.Table : View.Ledger); return;
         }
-        if (e.Action != "select" || e.Widget != "Answers") return;
-        Window.Host?.ClearSelection(Id, "Answers");   // a picked row is done: nothing stays marked (the list would grey it)
+        if (e.Widget != "Answers") return;
         int row = (int)MathF.Round(e.Value);
-        if (row < 0 || row >= s_rows.Count) return;
-        Counters.Add("answers.picked");
+        if (e.Action == "accept")
+        {
+            PickRow(row, "answers.accept");
+            return;
+        }
+        if (e.Action != "select") return;
+        if (InListKey)
+        {
+            s_highlighted = row >= 0 && row < s_rows.Count ? row : -1;
+            Counters.Add("answers.highlight");
+            return;
+        }
+        PickRow(row, "answers.picked");
+    }
+
+    static bool PickRow(int row, string counter)
+    {
+        s_highlighted = -1;
+        Window.Host?.ClearSelection(Id, "Answers");   // a picked row is done: nothing stays marked (the list would grey it)
+        if (row < 0 || row >= s_rows.Count) return false;
+        Counters.Add(counter);
         s_rows[row]();
+        return true;
+    }
+
+    /// <summary>Controller A (MenuNav -> MyGuiScreenHost.ActivateFocused) confirms the highlighted answer row.</summary>
+    public static bool AcceptHighlighted()
+    {
+        if (!Window.IsOpen || PzaUi.Typing || s_view != View.Table) return false;
+        if (s_highlighted < 0 || s_highlighted >= s_rows.Count) return false;
+        return PickRow(s_highlighted, "answers.pad");
+    }
+
+    /// <summary>Number keys 1-9 (top row or numpad) pick a row of the answers list while a table is open, matching Kenshi's own dialogue panel.</summary>
+    public static bool HandleKey(Meitou.Game.Host.Input.Key key)
+    {
+        if (!Window.IsOpen || PzaUi.Typing || s_view != View.Table) return false;
+        int index = key is >= Meitou.Game.Host.Input.Key.D1 and <= Meitou.Game.Host.Input.Key.D9
+            ? key - Meitou.Game.Host.Input.Key.D1
+            : key is >= Meitou.Game.Host.Input.Key.Keypad1 and <= Meitou.Game.Host.Input.Key.Keypad9
+            ? key - Meitou.Game.Host.Input.Key.Keypad1
+            : -1;
+        if (index < 0) return false;
+        PickRow(index, "answers.key");
+        return true;
     }
 
     /// <summary>Turns to a page (the rules, the ledger) or back to the table. Asking for the rules, the dealer says his own line about them.</summary>
     static void Show(View view)
     {
         s_view = view;
+        s_highlighted = -1;
         Window.Host?.ClearSelection(Id, "Answers");
         if (view == View.Rules && s_calls.HowTo() is { Length: > 0 } how) s_call = how;
         Counters.Add("view." + view);
