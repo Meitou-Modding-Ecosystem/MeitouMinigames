@@ -180,10 +180,17 @@ public sealed class TableHost(HostSpec spec, PopulationData? data, PopulationSys
             {
                 var task = (Meitou.Data.Gameplay.Ai.TaskType)SitRow;
                 var source = Enum.ToObject(s_sitOn.GetParameters()[4].ParameterType, (byte)Meitou.Simulation.Ai.TaskSource.Goal);
+                // Find the barman's own building from the seat/counter nearest to him so the host never sits in the building next door
+                string? barBuilding = world.Fixtures.SeatSpots
+                    .Where(sp => !string.IsNullOrEmpty(sp.Building) && MathF.Abs(sp.Position.Y - at.Y) < 15f && Vector3.Distance(sp.Position, at) < 120)
+                    .OrderBy(sp => Vector3.Distance(sp.Position, at))
+                    .Select(sp => sp.Building)
+                    .FirstOrDefault();
                 var free = world.Fixtures.SeatSpots
-                    // not the barman's own corner: a stool closer than 35 is behind the counter, where the player cannot walk to talk
-                    // (headless 2026-11-22, Squin on the 0.22.2 nightly: a seat 17 from the barman, the talk never opened)
-                    .Where(sp => Vector3.Distance(sp.Position, at) is >= 35 and < 250)
+                    // not the barman's own corner (closer than 35 is behind the counter), same floor, and same building as the barman
+                    .Where(sp => Vector3.Distance(sp.Position, at) is >= 35 and < 200
+                        && MathF.Abs(sp.Position.Y - at.Y) < 15f
+                        && (barBuilding is null || string.Equals(sp.Building, barBuilding, StringComparison.Ordinal)))
                     .OrderBy(sp => Vector3.Distance(sp.Position, at))
                     .FirstOrDefault(sp => s_canSit.Invoke(seats, [world, me, sp.Id])?.ToString() == "Seated");
                 if (free is not null && s_sitOn.Invoke(seats, [world, me, free.Id, task, source])?.ToString() == "Seated")
