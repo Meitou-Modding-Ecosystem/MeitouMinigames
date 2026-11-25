@@ -39,6 +39,10 @@ Requires the .NET SDK, an unpacked MeitouClient release (`>=0.21.0`), and [PZAMe
 .\mod\build.ps1 -Fuzz -MeitouDir <path-to-meitou>  # builds and runs the fuzz harness (tests\fuzz)
 ```
 
+## Automated checks
+
+GitHub Actions builds and stages the mod and runs its existing full fuzz suite separately on official Meitou 0.21.0 and 0.22.1 Windows releases. The 0.22.1 job also runs the existing mutation gate. Reader ZIP hashes and the shared UI/fuzz-kit commit are pinned. The required `Release readiness` check succeeds only when both jobs pass; it publishes nothing and needs no Kenshi installation or secrets. Run the same checks locally with `pwsh Tools/CI.ps1 -MeitouVersion 0.22.1 -MeitouDir <extracted-release> -Scratch <scratch-directory> -Mutation`, with the shared UI checkout beside this repo. These automated checks do not replace interactive gameplay testing.
+
 ## Licence
 
 GNU General Public License v3.0 or later — see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
